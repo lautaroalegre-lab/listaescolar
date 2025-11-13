@@ -12,16 +12,16 @@
     h1 {
       color: #2c3e50;
     }
-    input {
+    input, textarea {
       padding: 10px;
-      width: 300px;
+      width: 100%;
       font-size: 16px;
       margin-bottom: 10px;
     }
     button {
       padding: 10px;
       font-size: 16px;
-      margin-left: 5px;
+      margin: 5px 5px 10px 0;
     }
     ul {
       list-style-type: none;
@@ -41,14 +41,10 @@
       color: green;
       font-size: 14px;
     }
-    textarea {
-      margin-top: 10px;
-      width: 100%;
-    }
   </style>
 </head>
 <body>
-  <h1>📚 Registro Escolar - v1.1</h1>
+  <h1>📚 Registro Escolar - v4.0</h1>
 
   <h2>✉️ Correo institucional</h2>
   <input type="email" id="emailInput" placeholder="tuemail@philips.edu.ar">
@@ -66,7 +62,11 @@
   <ul id="registroList"></ul>
   <button onclick="eliminarRegistros()">🗑️ Eliminar todos los registros</button>
   <button onclick="exportarRegistros()">📤 Exportar registros</button>
-  <textarea id="exportArea" rows="6" cols="50" readonly style="display:none;"></textarea>
+  <textarea id="exportArea" rows="6" readonly style="display:none;"></textarea>
+
+  <h3>📥 Importar registros:</h3>
+  <textarea id="importArea" rows="6" placeholder="Pegá aquí los registros exportados..."></textarea>
+  <button onclick="importarRegistros()">Importar</button>
 
   <script>
     function validarEmail() {
@@ -176,16 +176,37 @@
     function eliminarRegistros() {
       localStorage.removeItem('registros');
       document.getElementById('registroList').innerHTML = '';
+      document.getElementById('exportArea').value = '';
     }
 
     function exportarRegistros() {
       const registros = JSON.parse(localStorage.getItem('registros')) || [];
       const area = document.getElementById('exportArea');
-      area.value = registros.join('\n');
+
+      if (registros.length === 0) {
+        area.value = "No hay registros para exportar.";
+      } else {
+        area.value = registros.join('\n');
+      }
+
       area.style.display = 'block';
+      area.focus();
+      area.select();
+
+      try {
+        const copiado = document.execCommand('copy');
+        if (copiado) {
+          alert("Registros copiados al portapapeles. Pegalos en otro dispositivo para importarlos.");
+        } else {
+          alert("Seleccioná y copiá manualmente los registros.");
+        }
+      } catch (err) {
+        alert("Tu navegador no permite copiar automáticamente. Seleccioná y copiá manualmente.");
+      }
     }
 
-    window.onload = cargarRegistros;
-  </script>
-</body>
-</html>
+    function importarRegistros() {
+      const texto = document.getElementById('importArea').value.trim();
+      if (!texto) return;
+
+      const nuevos = texto.split('\n').filter(line)}
