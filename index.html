@@ -41,18 +41,20 @@
       color: green;
       font-size: 14px;
     }
+    textarea {
+      margin-top: 10px;
+      width: 100%;
+    }
   </style>
 </head>
 <body>
-  <h1>📚 Registro Escolar - v1.0</h1>
+  <h1>📚 Registro Escolar - v1.1</h1>
 
-  <!-- Registro de Email -->
   <h2>✉️ Correo institucional</h2>
   <input type="email" id="emailInput" placeholder="tuemail@philips.edu.ar">
   <button onclick="validarEmail()">Validar</button>
   <p id="emailMensaje"></p>
 
-  <!-- Registro de Datos -->
   <div id="datosForm" style="display:none;">
     <h2>🧑 Datos del estudiante</h2>
     <input type="text" id="nombreInput" placeholder="Nombre">
@@ -62,6 +64,9 @@
 
   <h3>📋 Registros:</h3>
   <ul id="registroList"></ul>
+  <button onclick="eliminarRegistros()">🗑️ Eliminar todos los registros</button>
+  <button onclick="exportarRegistros()">📤 Exportar registros</button>
+  <textarea id="exportArea" rows="6" cols="50" readonly style="display:none;"></textarea>
 
   <script>
     function validarEmail() {
@@ -83,12 +88,47 @@
     function obtenerMateria(hora) {
       const [h, m] = hora.split(':').map(Number);
       const minutos = h * 60 + m;
+      const dia = new Date().getDay(); // 1 = lunes, ..., 5 = viernes
 
-      if (minutos >= 465 && minutos <= 545) return "Geografía";           // 7:45–9:05
-      if (minutos >= 555 && minutos <= 635) return "Matemática";          // 9:15–10:35
-      if (minutos >= 645 && minutos <= 725) return "ABP";                 // 10:45–12:05
-      if (minutos >= 730 && minutos <= 810) return "TIC";                 // 12:10–13:30
-      if (minutos >= 855 && minutos <= 935) return "Educación Ciudadana"; // 14:15–15:35
+      if (dia === 1) {
+        if (minutos >= 465 && minutos < 505) return "Geografía";
+        if (minutos >= 505 && minutos < 595) return "Educación Artística";
+        if (minutos >= 595 && minutos < 725) return "Expresión Oral y Escrita";
+        if (minutos >= 770 && minutos < 890) return "Diseño y Plegado";
+        if (minutos >= 905 && minutos < 1020) return "Diseño y Plegado";
+      }
+
+      if (dia === 2) {
+        if (minutos >= 465 && minutos < 545) return "Historia";
+        if (minutos >= 555 && minutos < 675) return "Inglés";
+        if (minutos >= 705 && minutos < 735) return "Micro";
+        if (minutos >= 735 && minutos < 855) return "Educación Física";
+        if (minutos >= 895 && minutos < 980) return "Lengua";
+      }
+
+      if (dia === 3) {
+        if (minutos >= 465 && minutos < 635) return "Dibujo Técnico";
+        if (minutos >= 645 && minutos < 685) return "Tutoría";
+        if (minutos >= 685 && minutos < 725) return "Educación Artística";
+        if (minutos >= 730 && minutos < 810) return "Matemática";
+        if (minutos >= 855 && minutos < 935) return "Lengua";
+        if (minutos >= 940 && minutos < 980) return "Historia";
+      }
+
+      if (dia === 4) {
+        if (minutos >= 465 && minutos < 545) return "Geografía";
+        if (minutos >= 555 && minutos < 635) return "Matemática";
+        if (minutos >= 645 && minutos < 725) return "ABP";
+        if (minutos >= 730 && minutos < 810) return "TIC";
+        if (minutos >= 855 && minutos < 935) return "Ciudadanía";
+      }
+
+      if (dia === 5) {
+        if (minutos >= 465 && minutos < 545) return "Matemática";
+        if (minutos >= 555 && minutos < 635) return "Biología";
+        if (minutos >= 645 && minutos < 725) return "Programación";
+        if (minutos >= 730 && minutos < 810) return "Inglés";
+      }
 
       return "Recreo";
     }
@@ -110,7 +150,6 @@
 
       guardarRegistroLocal(registro);
 
-      // Limpiar campos
       document.getElementById('emailInput').value = '';
       document.getElementById('nombreInput').value = '';
       document.getElementById('apellidoInput').value = '';
@@ -132,6 +171,18 @@
         li.textContent = registro;
         lista.appendChild(li);
       });
+    }
+
+    function eliminarRegistros() {
+      localStorage.removeItem('registros');
+      document.getElementById('registroList').innerHTML = '';
+    }
+
+    function exportarRegistros() {
+      const registros = JSON.parse(localStorage.getItem('registros')) || [];
+      const area = document.getElementById('exportArea');
+      area.value = registros.join('\n');
+      area.style.display = 'block';
     }
 
     window.onload = cargarRegistros;
