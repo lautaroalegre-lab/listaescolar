@@ -77,7 +77,7 @@
     function obtenerMateria(hora) {
       const [h, m] = hora.split(':').map(Number);
       const minutos = h * 60 + m;
-      const dia = new Date().getDay(); // 1 = lunes, ..., 5 = viernes
+      const dia = new Date().getDay();
 
       if (dia === 1) {
         if (minutos >= 465 && minutos < 505) return "Geografía";
@@ -190,20 +190,20 @@
       }
     }
 
-    // 🔥 FUNCIÓN CORREGIDA Y COMPLETA
+    /* 🔥 FUNCIÓN REPARADA (antes estaba incompleta) */
     function importarRegistros() {
       const texto = document.getElementById('importArea').value.trim();
       if (!texto) return;
 
-      const nuevos = texto.split('\n').filter(line => line.trim() !== '');
+      const nuevos = texto.split('\n').filter(l => l.trim() !== '');
       localStorage.setItem('registros', JSON.stringify(nuevos));
-
       cargarRegistros();
       alert("Registros importados correctamente.");
     }
 
-    // Cargar registros al abrir la página
+    /* carga registros automáticamente al abrir */
     window.onload = cargarRegistros;
+
   </script>
 </body>
 </html>
