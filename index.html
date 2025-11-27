@@ -190,6 +190,7 @@
       }
     }
 
+    // 🔥 FUNCIÓN CORREGIDA Y COMPLETA
     function importarRegistros() {
       const texto = document.getElementById('importArea').value.trim();
       if (!texto) return;
@@ -197,4 +198,12 @@
       const nuevos = texto.split('\n').filter(line => line.trim() !== '');
       localStorage.setItem('registros', JSON.stringify(nuevos));
 
-      const lista = document.getElementById('registro
+      cargarRegistros();
+      alert("Registros importados correctamente.");
+    }
+
+    // Cargar registros al abrir la página
+    window.onload = cargarRegistros;
+  </script>
+</body>
+</html>
