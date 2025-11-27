@@ -3,202 +3,160 @@
 <head>
   <meta charset="UTF-8">
   <title>Registro Escolar</title>
+
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f0f4f8;
-      padding: 20px;
-    }
-    h1 { color: #2c3e50; }
-    input, textarea {
-      padding: 10px;
-      width: 100%;
-      font-size: 16px;
-      margin-bottom: 10px;
-    }
-    button {
-      padding: 10px;
-      font-size: 16px;
-      margin: 5px 5px 10px 0;
-    }
-    ul { list-style-type: none; padding: 0; }
-    li {
-      background-color: #ffffff;
-      margin: 5px 0;
-      padding: 10px;
-      border-radius: 5px;
-    }
-    .error { color: red; font-size: 14px; }
-    .success { color: green; font-size: 14px; }
+    body { font-family: Arial; background:#eef3f8; padding:20px;}
+    input,button,textarea{font-size:17px;padding:10px;margin-bottom:10px;width:100%}
+    li{background:#fff;margin:4px 0;padding:8px;border-radius:6px}
+    .error{color:red}.success{color:green}
   </style>
 </head>
+
 <body>
-  <h1>📚 Registro Escolar - v4.1 + RealTime</h1>
 
-  <h2>✉️ Correo institucional</h2>
-  <input type="email" id="emailInput" placeholder="tuemail@philips.edu.ar">
-  <button onclick="validarEmail()">Validar</button>
-  <p id="emailMensaje"></p>
+<h1>📘 Registro Escolar — RealTime Firebase v5 FULL</h1>
 
-  <div id="datosForm" style="display:none;">
-    <h2>🧑 Datos del estudiante</h2>
-    <input type="text" id="nombreInput" placeholder="Nombre">
-    <input type="text" id="apellidoInput" placeholder="Apellido">
-    <button onclick="registrarDatos()">Registrar</button>
-  </div>
+<!-- VALIDACIÓN DE CORREO -->
+<h2>✉ Correo institucional</h2>
+<input type="email" id="emailInput" placeholder="tuemail@philips.edu.ar">
+<button type="button" onclick="validarEmail()">Validar</button>
+<p id="emailMensaje"></p>
 
-  <h3>📋 Registros (Tiempo Real entre dispositivos)</h3>
-  <ul id="registroList"></ul>
-  <button onclick="eliminarRegistros()">🗑️ Eliminar todos los registros</button>
-  <button onclick="exportarRegistros()">📤 Exportar registros</button>
-  <textarea id="exportArea" rows="6" readonly style="display:none;"></textarea>
+<!-- FORMULARIO DE REGISTRO (OCULTO HASTA VALIDAR MAIL) -->
+<div id="datosForm" style="display:none;">
+<h2>👤 Datos del estudiante</h2>
+<input type="text" id="nombreInput" placeholder="Nombre">
+<input type="text" id="apellidoInput" placeholder="Apellido">
+<button type="button" onclick="registrarDatos()">Registrar</button>
+</div>
 
-  <h3>📥 Importar registros:</h3>
-  <textarea id="importArea" rows="6" placeholder="Pegá aquí los registros exportados..."></textarea>
-  <button onclick="importarRegistros()">Importar</button>
+<!-- LISTA EN TIEMPO REAL -->
+<h3>📄 Registro en tiempo real</h3>
+<ul id="registroList"></ul>
+<button onclick="eliminarRegistros()">🗑 Borrar todo</button>
+<button onclick="exportarRegistros()">📤 Exportar registros</button>
+<textarea id="exportArea" rows="5" readonly style="display:none;"></textarea>
+
+<h3>📥 Importar registros</h3>
+<textarea id="importArea" rows="5" placeholder="Pegá aquí registros exportados"></textarea>
+<button onclick="importarRegistros()">Importar</button>
 
 
-  <!-- ▒▒▒▒▒▒ F I R E B A S E  ▒▒▒▒▒▒ -->
+<!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"></script>
 
 <script>
-/* ⚠️ PEGÁ TU CONFIGURACIÓN AQUI */
-const firebaseConfig = {
-  apiKey: "",
-  authDomain: "",
-  databaseURL: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+/* 🔥 PEGAR CONFIG FIREBASE AQUI */
+const firebaseConfig={
+  apiKey:"",
+  authDomain:"",
+  databaseURL:"",
+  projectId:"",
+  storageBucket:"",
+  messagingSenderId:"",
+  appId:""
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-/*──────────────────────────────────────*/
+const db=firebase.database();
 
-function validarEmail() {
-  const email = document.getElementById('emailInput').value.trim();
-  const mensaje = document.getElementById('emailMensaje');
-  const dominioValido = "@philips.edu.ar";
 
-  if (email.endsWith(dominioValido)) {
-    mensaje.textContent = "Correo válido. Ahora completá tus datos.";
-    mensaje.className = "success";
-    document.getElementById('datosForm').style.display = 'block';
-  } else {
-    mensaje.textContent = "Solo se permiten correos que terminen en " + dominioValido;
-    mensaje.className = "error";
-    document.getElementById('datosForm').style.display = 'none';
+/* VALIDAR MAIL */
+function validarEmail(){
+  const email=document.getElementById("emailInput").value.trim();
+  const msg=document.getElementById("emailMensaje");
+
+  if(!email.endsWith("@philips.edu.ar")){
+    msg.textContent="Solo se permiten correos institucionales";
+    msg.className="error";
+    document.getElementById("datosForm").style.display="none";
+    return;
   }
+
+  msg.textContent="✔ Correo válido. Continúa con tus datos.";
+  msg.className="success";
+  document.getElementById("datosForm").style.display="block";
 }
 
-function obtenerMateria(hora) {
-  const [h, m] = hora.split(':').map(Number);
-  const minutos = h * 60 + m;
-  const dia = new Date().getDay();
 
-  if (dia === 1) {
-    if (minutos >= 465 && minutos < 505) return "Geografía";
-    if (minutos >= 505 && minutos < 595) return "Educación Artística";
-    if (minutos >= 595 && minutos < 725) return "Expresión Oral y Escrita";
-    if (minutos >= 770 && minutos < 890) return "Diseño y Plegado";
-    if (minutos >= 905 && minutos < 1020) return "Diseño y Plegado";
-  }
-  if (dia === 2) {
-    if (minutos >= 465 && minutos < 545) return "Historia";
-    if (minutos >= 555 && minutos < 675) return "Inglés";
-    if (minutos >= 705 && minutos < 735) return "Micro";
-    if (minutos >= 735 && minutos < 855) return "Educación Física";
-    if (minutos >= 895 && minutos < 980) return "Lengua";
-  }
-  if (dia === 3) {
-    if (minutos >= 465 && minutos < 635) return "Dibujo Técnico";
-    if (minutos >= 645 && minutos < 685) return "Tutoría";
-    if (minutos >= 685 && minutos < 725) return "Educación Artística";
-    if (minutos >= 730 && minutos < 810) return "Matemática";
-    if (minutos >= 855 && minutos < 935) return "Lengua";
-    if (minutos >= 940 && minutos < 980) return "Historia";
-  }
-  if (dia === 4) {
-    if (minutos >= 465 && minutos < 545) return "Geografía";
-    if (minutos >= 555 && minutos < 635) return "Matemática";
-    if (minutos >= 645 && minutos < 725) return "ABP";
-    if (minutos >= 730 && minutos < 810) return "TIC";
-    if (minutos >= 855 && minutos < 935) return "Ciudadanía";
-  }
-  if (dia === 5) {
-    if (minutos >= 465 && minutos < 545) return "Matemática";
-    if (minutos >= 555 && minutos < 635) return "Biología";
-    if (minutos >= 645 && minutos < 725) return "Programación";
-    if (minutos >= 730 && minutos < 810) return "Inglés";
-  }
-  return "Recreo";
+/* ASIGNAR MATERIA POR HORA */
+function obtenerMateria(hora){
+  const [h,m]=hora.split(":").map(Number);
+  const t=h*60+m, d=new Date().getDay();
+  const M=(a,b,c)=>t>=a&&t<b?c:null;
+
+  // Lunes
+  if(d===1) return M(465,505,"Geografía")||M(505,595,"Educación Artística")||M(595,725,"Expresión Oral y Escrita")||
+                     M(770,890,"Diseño y Plegado")||M(905,1020,"Diseño y Plegado")||"Recreo";
+
+  // Martes
+  if(d===2) return M(465,545,"Historia")||M(555,675,"Inglés")||M(705,735,"Micro")||M(735,855,"Educación Física")||
+                     M(895,980,"Lengua")||"Recreo";
+
+  // Miércoles
+  if(d===3) return M(465,635,"Dibujo Técnico")||M(645,685,"Tutoría")||M(685,725,"Educación Artística")||
+                     M(730,810,"Matemática")||M(855,935,"Lengua")||M(940,980,"Historia")||"Recreo";
+
+  // Jueves
+  if(d===4) return M(465,545,"Geografía")||M(555,635,"Matemática")||M(645,725,"ABP")||
+                     M(730,810,"TIC")||M(855,935,"Ciudadanía")||"Recreo";
+
+  // Viernes
+  if(d===5) return M(465,545,"Matemática")||M(555,635,"Biología")||M(645,725,"Programación")||
+                     M(730,810,"Inglés")||"Recreo";
+
+  return "Fuera de horario";
 }
 
-function registrarDatos() {
-  const email = document.getElementById('emailInput').value.trim().toLowerCase();
-  const nombre = document.getElementById('nombreInput').value.trim();
-  const apellido = document.getElementById('apellidoInput').value.trim();
-  const fecha = new Date().toLocaleDateString('es-AR');
-  const horaActual = new Date().toLocaleTimeString('es-AR', { hour12: false });
-  const materia = obtenerMateria(horaActual);
 
-  if(nombre==''||apellido=='') return;
+/* REGISTRAR */
+function registrarDatos(){
+  const email=document.getElementById("emailInput").value.trim().toLowerCase();
+  const nombre=document.getElementById("nombreInput").value.trim();
+  const apellido=document.getElementById("apellidoInput").value.trim();
+  if(!nombre||!apellido) return alert("⚠ Completá nombre y apellido.");
 
-  const id = email.replace(/\./g,"_");
+  const id=email.replace(/\./g,"_");
+  const fecha=new Date().toLocaleDateString('es-AR');
+  const hora=new Date().toLocaleTimeString('es-AR',{hour12:false});
+  const materia=obtenerMateria(hora);
 
-  db.ref("alumnos/"+id).get().then(snap=>{
-      if(snap.exists()){
-          alert("⚠ Este correo ya está registrado.");
-          return;
-      }
-      db.ref("alumnos/"+id).set({email,nombre,apellido,materia,fecha,horaActual});
-      alert("✔ Registrado correctamente.");
+  db.ref("alumnos/"+id).get().then(s=>{
+    if(s.exists()) return alert("❌ Ese correo ya está registrado.");
+
+    db.ref("alumnos/"+id).set({email,nombre,apellido,materia,fecha,hora});
+    alert("✔ Registro exitoso");
   });
 }
 
-db.ref("alumnos").on("value",snap=>{
-  const lista = document.getElementById('registroList');
-  lista.innerHTML = "";
-  snap.forEach(s=>{
-      let a=s.val();
-      lista.innerHTML+=`<li>${a.nombre} ${a.apellido} — ${a.email} — ${a.materia} — ${a.fecha} ${a.horaActual}</li>`;
+
+/* 🔥 LISTA EN TIEMPO REAL */
+db.ref("alumnos").on("value",s=>{
+  let l=document.getElementById("registroList");
+  l.innerHTML="";
+  s.forEach(a=>{a=a.val();
+    l.innerHTML+=`<li>${a.nombre} ${a.apellido} — ${a.email} — ${a.materia} — ${a.fecha} ${a.hora}</li>`;
   });
 });
 
-function eliminarRegistros(){
-  db.ref("alumnos").remove();
-  document.getElementById('registroList').innerHTML="";
+
+/* FUNCIONES EXTRAS */
+function eliminarRegistros(){ db.ref("alumnos").remove(); }
+function exportarRegistros(){
+  const a=document.getElementById("exportArea");
+  a.value="";
+  db.ref("alumnos").once("value",s=>{ s.forEach(v=>a.value+=JSON.stringify(v.val())+"\n"); });
+  a.style.display="block"; a.select(); document.execCommand("copy");
+  alert("📤 Copiado al portapapeles");
 }
-
-function exportarRegistros() {
-  const area = document.getElementById('exportArea');
-  area.value = "";
-
-  db.ref("alumnos").once("value",snap=>{
-      snap.forEach(s=> area.value+=JSON.stringify(s.val())+"\n" );
-      area.style.display="block";
-      area.select();
-      document.execCommand("copy");
-      alert("Copiado 📤");
-  });
-}
-
 function importarRegistros(){
-  const texto=document.getElementById("importArea").value.trim();
-  if(!texto) return;
-
-  const lineas=texto.split("\n");
-  lineas.forEach(l=>{
-    let obj=JSON.parse(l);
-    let id=obj.email.replace(/\./g,"_");
-    db.ref("alumnos/"+id).set(obj);
+  document.getElementById("importArea").value.split("\n").forEach(l=>{
+    if(l.trim()) {let o=JSON.parse(l); db.ref("alumnos/"+o.email.replace(/\./g,"_")).set(o);}
   });
-
-  alert("📥 Importado con éxito.");
+  alert("📥 Importado");
 }
-
 </script>
+
 </body>
 </html>
+
