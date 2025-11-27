@@ -1,28 +1,200 @@
-<script>
-  // ... todas las funciones anteriores ...
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registro Escolar</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f4f8;
+      padding: 20px;
+    }
+    h1 { color: #2c3e50; }
+    input, textarea {
+      padding: 10px;
+      width: 100%;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px 5px 10px 0;
+    }
+    ul { list-style-type: none; padding: 0; }
+    li {
+      background-color: #ffffff;
+      margin: 5px 0;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .error { color: red; font-size: 14px; }
+    .success { color: green; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>📚 Registro Escolar - v4.1</h1>
 
-  function importarRegistros() {
-    const texto = document.getElementById('importArea').value.trim();
-    if (!texto) return;
+  <h2>✉️ Correo institucional</h2>
+  <input type="email" id="emailInput" placeholder="tuemail@philips.edu.ar">
+  <button onclick="validarEmail()">Validar</button>
+  <p id="emailMensaje"></p>
 
-    const nuevos = texto.split('\n').filter(line => line.trim() !== '');
+  <div id="datosForm" style="display:none;">
+    <h2>🧑 Datos del estudiante</h2>
+    <input type="text" id="nombreInput" placeholder="Nombre">
+    <input type="text" id="apellidoInput" placeholder="Apellido">
+    <button onclick="registrarDatos()">Registrar</button>
+  </div>
 
-    // Guardar en localStorage
-    localStorage.setItem('registros', JSON.stringify(nuevos));
+  <h3>📋 Registros:</h3>
+  <ul id="registroList"></ul>
+  <button onclick="eliminarRegistros()">🗑️ Eliminar todos los registros</button>
+  <button onclick="exportarRegistros()">📤 Exportar registros</button>
+  <textarea id="exportArea" rows="6" readonly style="display:none;"></textarea>
 
-    // Mostrar en la lista
-    const lista = document.getElementById('registroList');
-    lista.innerHTML = '';
-    nuevos.forEach(registro => {
+  <h3>📥 Importar registros:</h3>
+  <textarea id="importArea" rows="6" placeholder="Pegá aquí los registros exportados..."></textarea>
+  <button onclick="importarRegistros()">Importar</button>
+
+  <script>
+    function validarEmail() {
+      const email = document.getElementById('emailInput').value.trim();
+      const mensaje = document.getElementById('emailMensaje');
+      const dominioValido = "@philips.edu.ar";
+
+      if (email.endsWith(dominioValido)) {
+        mensaje.textContent = "Correo válido. Ahora completá tus datos.";
+        mensaje.className = "success";
+        document.getElementById('datosForm').style.display = 'block';
+      } else {
+        mensaje.textContent = "Solo se permiten correos que terminen en " + dominioValido;
+        mensaje.className = "error";
+        document.getElementById('datosForm').style.display = 'none';
+      }
+    }
+
+    function obtenerMateria(hora) {
+      const [h, m] = hora.split(':').map(Number);
+      const minutos = h * 60 + m;
+      const dia = new Date().getDay(); // 1 = lunes, ..., 5 = viernes
+
+      if (dia === 1) {
+        if (minutos >= 465 && minutos < 505) return "Geografía";
+        if (minutos >= 505 && minutos < 595) return "Educación Artística";
+        if (minutos >= 595 && minutos < 725) return "Expresión Oral y Escrita";
+        if (minutos >= 770 && minutos < 890) return "Diseño y Plegado";
+        if (minutos >= 905 && minutos < 1020) return "Diseño y Plegado";
+      }
+      if (dia === 2) {
+        if (minutos >= 465 && minutos < 545) return "Historia";
+        if (minutos >= 555 && minutos < 675) return "Inglés";
+        if (minutos >= 705 && minutos < 735) return "Micro";
+        if (minutos >= 735 && minutos < 855) return "Educación Física";
+        if (minutos >= 895 && minutos < 980) return "Lengua";
+      }
+      if (dia === 3) {
+        if (minutos >= 465 && minutos < 635) return "Dibujo Técnico";
+        if (minutos >= 645 && minutos < 685) return "Tutoría";
+        if (minutos >= 685 && minutos < 725) return "Educación Artística";
+        if (minutos >= 730 && minutos < 810) return "Matemática";
+        if (minutos >= 855 && minutos < 935) return "Lengua";
+        if (minutos >= 940 && minutos < 980) return "Historia";
+      }
+      if (dia === 4) {
+        if (minutos >= 465 && minutos < 545) return "Geografía";
+        if (minutos >= 555 && minutos < 635) return "Matemática";
+        if (minutos >= 645 && minutos < 725) return "ABP";
+        if (minutos >= 730 && minutos < 810) return "TIC";
+        if (minutos >= 855 && minutos < 935) return "Ciudadanía";
+      }
+      if (dia === 5) {
+        if (minutos >= 465 && minutos < 545) return "Matemática";
+        if (minutos >= 555 && minutos < 635) return "Biología";
+        if (minutos >= 645 && minutos < 725) return "Programación";
+        if (minutos >= 730 && minutos < 810) return "Inglés";
+      }
+      return "Recreo";
+    }
+
+    function registrarDatos() {
+      const email = document.getElementById('emailInput').value.trim();
+      const nombre = document.getElementById('nombreInput').value.trim();
+      const apellido = document.getElementById('apellidoInput').value.trim();
+      const fecha = new Date().toLocaleDateString('es-AR');
+      const horaActual = new Date().toLocaleTimeString('es-AR', { hour12: false });
+      const materia = obtenerMateria(horaActual);
+
+      if (nombre === '' || apellido === '') return;
+
+      const registro = `${nombre} ${apellido} (${email}) - ${materia} - Ingresado el ${fecha} a las ${horaActual}`;
       const li = document.createElement('li');
       li.textContent = registro;
-      lista.appendChild(li);
-    });
+      document.getElementById('registroList').appendChild(li);
 
-    // Limpiar área de importación
-    document.getElementById('importArea').value = '';
-  }
+      guardarRegistroLocal(registro);
 
-  // Cargar registros al iniciar
-  window.onload = cargarRegistros;
-</script>
+      document.getElementById('emailInput').value = '';
+      document.getElementById('nombreInput').value = '';
+      document.getElementById('apellidoInput').value = '';
+      document.getElementById('datosForm').style.display = 'none';
+      document.getElementById('emailMensaje').textContent = '';
+    }
+
+    function guardarRegistroLocal(registro) {
+      const registros = JSON.parse(localStorage.getItem('registros')) || [];
+      registros.push(registro);
+      localStorage.setItem('registros', JSON.stringify(registros));
+    }
+
+    function cargarRegistros() {
+      const registros = JSON.parse(localStorage.getItem('registros')) || [];
+      const lista = document.getElementById('registroList');
+      lista.innerHTML = '';
+      registros.forEach(registro => {
+        const li = document.createElement('li');
+        li.textContent = registro;
+        lista.appendChild(li);
+      });
+    }
+
+    function eliminarRegistros() {
+      localStorage.removeItem('registros');
+      document.getElementById('registroList').innerHTML = '';
+      document.getElementById('exportArea').value = '';
+    }
+
+    function exportarRegistros() {
+      const registros = JSON.parse(localStorage.getItem('registros')) || [];
+      const area = document.getElementById('exportArea');
+
+      if (registros.length === 0) {
+        area.value = "No hay registros para exportar.";
+      } else {
+        area.value = registros.join('\n');
+      }
+
+      area.style.display = 'block';
+      area.focus();
+      area.select();
+
+      try {
+        const copiado = document.execCommand('copy');
+        if (copiado) {
+          alert("Registros copiados al portapapeles. Pegalos en otro dispositivo para importarlos.");
+        } else {
+          alert("Seleccioná y copiá manualmente los registros.");
+        }
+      } catch (err) {
+        alert("Tu navegador no permite copiar automáticamente. Seleccioná y copiá manualmente.");
+      }
+    }
+
+    function importarRegistros() {
+      const texto = document.getElementById('importArea').value.trim();
+      if (!texto) return;
+
+      const nuevos = texto.split('\n').filter(line => line.trim() !== '');
+      localStorage.setItem('registros', JSON.stringify(nuevos));
+
+      const lista = document.getElementById('registro
