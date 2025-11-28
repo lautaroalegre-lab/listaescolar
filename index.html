@@ -9,12 +9,14 @@
     input,button,textarea{font-size:17px;padding:10px;margin-bottom:10px;width:100%}
     li{background:#fff;margin:4px 0;padding:8px;border-radius:6px}
     .error{color:red}.success{color:green}
+    .horario { background:#fff; padding:8px; border-radius:6px; margin-bottom:5px; }
+    .actual { background:#d1f7c4; font-weight:bold; }
   </style>
 </head>
 
 <body>
 
-<h1>📘 Registro Escolar — Firebase</h1>
+<h1>📘 Registro Escolar</h1>
 
 <!-- VALIDACIÓN DE CORREO -->
 <h2>✉ Correo institucional</h2>
@@ -22,21 +24,18 @@
 <button type="button" onclick="validarEmail()">Validar</button>
 <p id="emailMensaje"></p>
 
-<!-- FORMULARIO DE REGISTRO (OCULTO HASTA VALIDAR MAIL) -->
+<!-- FORMULARIO DE DATOS -->
 <div id="datosForm" style="display:none;">
 <h2>👤 Datos del estudiante</h2>
 <input type="text" id="nombreInput" placeholder="Nombre">
 <input type="text" id="apellidoInput" placeholder="Apellido">
-<button type="button" onclick="registrarDatos()">Registrar</button>
+<button type="button" onclick="mostrarHorarios()">Continuar</button>
 </div>
 
-<!-- 🔒 SECCIÓN OCULTA: Registro en tiempo real, borrar, exportar -->
-<div style="display:none;">
-  <h3>📄 Registro en tiempo real</h3>
-  <ul id="registroList"></ul>
-  <button onclick="eliminarRegistros()">🗑 Borrar todo</button>
-  <button onclick="exportarRegistros()">📤 Exportar registros</button>
-  <textarea id="exportArea" rows="5" readonly></textarea>
+<!-- HORARIOS MOSTRADOS -->
+<div id="horariosBox" style="display:none;">
+  <h2>📅 Horarios del día</h2>
+  <div id="horariosLista"></div>
 </div>
 
 <!-- FIREBASE -->
@@ -44,23 +43,13 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"></script>
 
 <script>
-/* 🔥 CONFIG FIREBASE */
-const firebaseConfig={
-  apiKey:"",
-  authDomain:"",
-  databaseURL:"",
-  projectId:"",
-  storageBucket:"",
-  messagingSenderId:"",
-  appId:""
-};
+/* 🔥 FIREBASE */
+const firebaseConfig={ apiKey:"", authDomain:"", databaseURL:"", projectId:"", storageBucket:"", messagingSenderId:"", appId:"" };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
 /* Sanitizar ID */
-function limpiarID(email){
-  return email.toLowerCase().replace(/[.#$[\]]/g,"_").replace(/\s+/g,"_");
-}
+function limpiarID(email){ return email.toLowerCase().replace(/[.#$[\]]/g,"_").replace(/\s+/g,"_"); }
 
 let emailValidado = null;
 
@@ -72,84 +61,87 @@ function validarEmail(){
   if(!email.endsWith("@philips.edu.ar")){
     msg.textContent="Solo se permiten correos institucionales";
     msg.className="error";
-    emailValidado = null;
     document.getElementById("datosForm").style.display="none";
     return;
   }
 
-  msg.textContent="✔ Correo válido. Continúa con tus datos.";
+  msg.textContent="✔ Correo válido. Completa tu nombre y apellido.";
   msg.className="success";
-  emailValidado = email.toLowerCase();
+
+  emailValidado = email;
   document.getElementById("datosForm").style.display="block";
 }
 
-/* MATERIA SEGÚN HORA */
-function obtenerMateria(hora){
-  const [h,m]=hora.split(":").map(Number);
-  const t=h*60+m, d=new Date().getDay();
-  const M=(a,b,c)=>t>=a&&t<b?c:null;
+/* HORARIOS CARGADOS DEL CÓDIGO */
+const horarios = {
+  1: [
+    { ini:465, fin:505, mat:"Geografía" },
+    { ini:505, fin:595, mat:"Educación Artística" },
+    { ini:595, fin:725, mat:"Expresión Oral y Escrita" }
+  ],
+  2: [
+    { ini:465, fin:545, mat:"Historia" },
+    { ini:555, fin:675, mat:"Inglés" },
+    { ini:705, fin:735, mat:"Micro" },
+    { ini:735, fin:855, mat:"Educación Física" }
+  ],
+  3: [
+    { ini:465, fin:635, mat:"Dibujo Técnico" },
+    { ini:645, fin:685, mat:"Tutoría" },
+    { ini:685, fin:725, mat:"Educación Artística" }
+  ],
+  4: [
+    { ini:465, fin:545, mat:"Geografía" },
+    { ini:555, fin:635, mat:"Matemática" },
+    { ini:645, fin:725, mat:"ABP" }
+  ],
+  5: [
+    { ini:465, fin:545, mat:"Matemática" },
+    { ini:555, fin:635, mat:"Biología" },
+    { ini:645, fin:725, mat:"Programación" }
+  ]
+};
 
-  if(d===1) return M(465,505,"Geografía")||"Recreo";
-  if(d===2) return M(465,545,"Historia")||"Recreo";
-  if(d===3) return M(465,635,"Dibujo Técnico")||"Recreo";
-  if(d===4) return M(465,545,"Geografía")||"Recreo";
-  if(d===5) return M(465,545,"Matemática")||"Recreo";
-  return "Fuera de horario";
-}
+/* MOSTRAR HORARIOS */
+function mostrarHorarios(){
+  const nombre = document.getElementById("nombreInput").value.trim();
+  const apellido = document.getElementById("apellidoInput").value.trim();
 
-/* REGISTRAR */
-function registrarDatos(){
-  if(!emailValidado) return alert("⚠ Primero validá tu correo institucional.");
+  if(!nombre || !apellido){
+    alert("Completá nombre y apellido.");
+    return;
+  }
 
-  const nombre=document.getElementById("nombreInput").value.trim();
-  const apellido=document.getElementById("apellidoInput").value.trim();
-  if(!nombre||!apellido) return alert("⚠ Completá nombre y apellido.");
+  const hoy = new Date().getDay();
+  const ahora = new Date();
+  const minutos = ahora.getHours()*60 + ahora.getMinutes();
 
-  const id=limpiarID(emailValidado);
-  const fecha=new Date().toLocaleDateString('es-AR');
-  const hora=new Date().toLocaleTimeString('es-AR',{hour12:false});
-  const materia=obtenerMateria(hora);
+  const lista = document.getElementById("horariosLista");
+  lista.innerHTML = "";
 
-  db.ref("alumnos/"+id).get().then(s=>{
-    if(s.exists()) return alert("❌ Ese correo ya está registrado.");
+  if(!horarios[hoy]){
+    lista.innerHTML = "<p>No hay horarios para hoy.</p>";
+  } else {
+    horarios[hoy].forEach(h => {
+      const div = document.createElement("div");
+      div.classList.add("horario");
 
-    db.ref("alumnos/"+id).set({
-      email: emailValidado,
-      nombre,
-      apellido,
-      materia,
-      fecha,
-      hora
+      const esActual = minutos >= h.ini && minutos < h.fin;
+      if(esActual) div.classList.add("actual");
+
+      div.textContent = `${h.mat} — ${minutosAHora(h.ini)} a ${minutosAHora(h.fin)} ${esActual ? "(AHORA)" : ""}`;
+      lista.appendChild(div);
     });
+  }
 
-    alert("✔ Registro exitoso");
-  });
+  document.getElementById("horariosBox").style.display="block";
 }
 
-/* REAL-TIME (aunque oculto) */
-db.ref("alumnos").orderByChild("hora").on("value",s=>{
-  let l=document.getElementById("registroList");
-  l.innerHTML="";
-  s.forEach(a=>{
-    a=a.val();
-    l.innerHTML+=`<li>${a.nombre} ${a.apellido} — ${a.email} — ${a.materia} — ${a.fecha} ${a.hora}</li>`;
-  });
-});
-
-/* BORRAR TODO */
-function eliminarRegistros(){ 
-  if(confirm("¿Seguro que querés borrar todo?")) 
-    db.ref("alumnos").remove(); 
-}
-
-/* EXPORTAR */
-function exportarRegistros(){
-  const a=document.getElementById("exportArea");
-  a.value="";
-  db.ref("alumnos").once("value",s=>{
-    s.forEach(v=> a.value += JSON.stringify(v.val())+"\n" );
-    a.style.display="block";
-  });
+/* CONVERSIÓN MINUTOS → FORMATO HH:MM */
+function minutosAHora(m){
+  const h = Math.floor(m/60).toString().padStart(2,"0");
+  const min = (m%60).toString().padStart(2,"0");
+  return `${h}:${min}`;
 }
 </script>
 
