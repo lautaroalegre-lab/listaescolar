@@ -60,6 +60,13 @@ const firebaseConfig={
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
+/* 🔒 Sanitizar ID Firebase */
+function limpiarID(email){
+  return email
+    .toLowerCase()
+    .replace(/[.#$[\]]/g, "_")
+    .replace(/\s+/g, "_");
+}
 
 /* VALIDAR MAIL */
 function validarEmail(){
@@ -78,36 +85,29 @@ function validarEmail(){
   document.getElementById("datosForm").style.display="block";
 }
 
-
-/* ASIGNAR MATERIA POR HORA */
+/* ASIGNAR MATERIA POR HORA (igual que tu código original) */
 function obtenerMateria(hora){
   const [h,m]=hora.split(":").map(Number);
   const t=h*60+m, d=new Date().getDay();
   const M=(a,b,c)=>t>=a&&t<b?c:null;
 
-  // Lunes
   if(d===1) return M(465,505,"Geografía")||M(505,595,"Educación Artística")||M(595,725,"Expresión Oral y Escrita")||
                      M(770,890,"Diseño y Plegado")||M(905,1020,"Diseño y Plegado")||"Recreo";
 
-  // Martes
   if(d===2) return M(465,545,"Historia")||M(555,675,"Inglés")||M(705,735,"Micro")||M(735,855,"Educación Física")||
                      M(895,980,"Lengua")||"Recreo";
 
-  // Miércoles
   if(d===3) return M(465,635,"Dibujo Técnico")||M(645,685,"Tutoría")||M(685,725,"Educación Artística")||
                      M(730,810,"Matemática")||M(855,935,"Lengua")||M(940,980,"Historia")||"Recreo";
 
-  // Jueves
   if(d===4) return M(465,545,"Geografía")||M(555,635,"Matemática")||M(645,725,"ABP")||
                      M(730,810,"TIC")||M(855,935,"Ciudadanía")||"Recreo";
 
-  // Viernes
   if(d===5) return M(465,545,"Matemática")||M(555,635,"Biología")||M(645,725,"Programación")||
                      M(730,810,"Inglés")||"Recreo";
 
   return "Fuera de horario";
 }
-
 
 /* REGISTRAR */
 function registrarDatos(){
@@ -116,7 +116,7 @@ function registrarDatos(){
   const apellido=document.getElementById("apellidoInput").value.trim();
   if(!nombre||!apellido) return alert("⚠ Completá nombre y apellido.");
 
-  const id=email.replace(/\./g,"_");
+  const id=limpiarID(email);
   const fecha=new Date().toLocaleDateString('es-AR');
   const hora=new Date().toLocaleTimeString('es-AR',{hour12:false});
   const materia=obtenerMateria(hora);
@@ -129,31 +129,57 @@ function registrarDatos(){
   });
 }
 
-
-/* 🔥 LISTA EN TIEMPO REAL */
-db.ref("alumnos").on("value",s=>{
+/* 🔥 LISTA EN TIEMPO REAL (ordenada por hora) */
+db.ref("alumnos").orderByChild("hora").on("value",s=>{
   let l=document.getElementById("registroList");
   l.innerHTML="";
-  s.forEach(a=>{a=a.val();
+  s.forEach(a=>{
+    a=a.val();
     l.innerHTML+=`<li>${a.nombre} ${a.apellido} — ${a.email} — ${a.materia} — ${a.fecha} ${a.hora}</li>`;
   });
 });
 
-
 /* FUNCIONES EXTRAS */
-function eliminarRegistros(){ db.ref("alumnos").remove(); }
+function eliminarRegistros(){ 
+  if(confirm("¿Seguro que querés borrar todo?")) 
+    db.ref("alumnos").remove(); 
+}
+
+/* 📤 Copiado moderno */
 function exportarRegistros(){
   const a=document.getElementById("exportArea");
   a.value="";
-  db.ref("alumnos").once("value",s=>{ s.forEach(v=>a.value+=JSON.stringify(v.val())+"\n"); });
-  a.style.display="block"; a.select(); document.execCommand("copy");
-  alert("📤 Copiado al portapapeles");
-}
-function importarRegistros(){
-  document.getElementById("importArea").value.split("\n").forEach(l=>{
-    if(l.trim()) {let o=JSON.parse(l); db.ref("alumnos/"+o.email.replace(/\./g,"_")).set(o);}
+
+  db.ref("alumnos").once("value",s=>{
+    s.forEach(v=> a.value += JSON.stringify(v.val())+"\n" );
+    a.style.display="block";
+
+    navigator.clipboard.writeText(a.value)
+      .then(()=> alert("📤 Copiado al portapapeles"))
+      .catch(()=> alert("⚠ No se pudo copiar automáticamente"));
   });
-  alert("📥 Importado");
+}
+
+/* 📥 Importar con validación segura */
+function importarRegistros(){
+  const lineas=document.getElementById("importArea").value.split("\n");
+
+  lineas.forEach(l=>{
+    if(!l.trim()) return;
+
+    try{
+      let o=JSON.parse(l);
+      if(!o.email) return alert("Una línea no tenía email, se ignoró.");
+
+      const id=limpiarID(o.email);
+      db.ref("alumnos/"+id).set(o);
+
+    }catch(err){
+      alert("❌ Línea con formato incorrecto. Verificá el JSON.");
+    }
+  });
+
+  alert("📥 Importado con éxito");
 }
 </script>
 
