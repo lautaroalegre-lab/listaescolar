@@ -68,6 +68,11 @@ function limpiarID(email){
     .replace(/\s+/g, "_");
 }
 
+/* ----------------------------- */
+/*  🔧 EMAIL VALIDADO (ARREGLO) */
+/* ----------------------------- */
+let emailValidado = null;
+
 /* VALIDAR MAIL */
 function validarEmail(){
   const email=document.getElementById("emailInput").value.trim();
@@ -76,16 +81,21 @@ function validarEmail(){
   if(!email.endsWith("@philips.edu.ar")){
     msg.textContent="Solo se permiten correos institucionales";
     msg.className="error";
+    emailValidado = null;
     document.getElementById("datosForm").style.display="none";
     return;
   }
 
   msg.textContent="✔ Correo válido. Continúa con tus datos.";
   msg.className="success";
+
+  /* 📌 Guardar correo validado */
+  emailValidado = email.toLowerCase();
+
   document.getElementById("datosForm").style.display="block";
 }
 
-/* ASIGNAR MATERIA POR HORA (igual que tu código original) */
+/* ASIGNAR MATERIA POR HORA */
 function obtenerMateria(hora){
   const [h,m]=hora.split(":").map(Number);
   const t=h*60+m, d=new Date().getDay();
@@ -109,14 +119,21 @@ function obtenerMateria(hora){
   return "Fuera de horario";
 }
 
-/* REGISTRAR */
+/* ----------------------------- */
+/*  🔧 REGISTRAR (ARREGLO)      */
+/* ----------------------------- */
 function registrarDatos(){
-  const email=document.getElementById("emailInput").value.trim().toLowerCase();
+
+  /* ⚠ Evita registro sin correo validado */
+  if(!emailValidado){
+    return alert("⚠ Primero validá tu correo institucional.");
+  }
+
   const nombre=document.getElementById("nombreInput").value.trim();
   const apellido=document.getElementById("apellidoInput").value.trim();
   if(!nombre||!apellido) return alert("⚠ Completá nombre y apellido.");
 
-  const id=limpiarID(email);
+  const id=limpiarID(emailValidado);
   const fecha=new Date().toLocaleDateString('es-AR');
   const hora=new Date().toLocaleTimeString('es-AR',{hour12:false});
   const materia=obtenerMateria(hora);
@@ -124,12 +141,20 @@ function registrarDatos(){
   db.ref("alumnos/"+id).get().then(s=>{
     if(s.exists()) return alert("❌ Ese correo ya está registrado.");
 
-    db.ref("alumnos/"+id).set({email,nombre,apellido,materia,fecha,hora});
+    db.ref("alumnos/"+id).set({
+      email: emailValidado,
+      nombre,
+      apellido,
+      materia,
+      fecha,
+      hora
+    });
+
     alert("✔ Registro exitoso");
   });
 }
 
-/* 🔥 LISTA EN TIEMPO REAL (ordenada por hora) */
+/* LISTA EN TIEMPO REAL */
 db.ref("alumnos").orderByChild("hora").on("value",s=>{
   let l=document.getElementById("registroList");
   l.innerHTML="";
@@ -145,7 +170,7 @@ function eliminarRegistros(){
     db.ref("alumnos").remove(); 
 }
 
-/* 📤 Copiado moderno */
+/* EXPORTAR */
 function exportarRegistros(){
   const a=document.getElementById("exportArea");
   a.value="";
@@ -160,7 +185,7 @@ function exportarRegistros(){
   });
 }
 
-/* 📥 Importar con validación segura */
+/* IMPORTAR */
 function importarRegistros(){
   const lineas=document.getElementById("importArea").value.split("\n");
 
