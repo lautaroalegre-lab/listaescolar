@@ -37,11 +37,6 @@
 <button onclick="exportarRegistros()">📤 Exportar registros</button>
 <textarea id="exportArea" rows="5" readonly style="display:none;"></textarea>
 
-<h3>📥 Importar registros</h3>
-<textarea id="importArea" rows="5" placeholder="Pegá aquí registros exportados"></textarea>
-<button onclick="importarRegistros()">Importar</button>
-
-
 <!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"></script>
@@ -89,9 +84,7 @@ function validarEmail(){
   msg.textContent="✔ Correo válido. Continúa con tus datos.";
   msg.className="success";
 
-  /* 📌 Guardar correo validado */
   emailValidado = email.toLowerCase();
-
   document.getElementById("datosForm").style.display="block";
 }
 
@@ -119,12 +112,8 @@ function obtenerMateria(hora){
   return "Fuera de horario";
 }
 
-/* ----------------------------- */
-/*  🔧 REGISTRAR (ARREGLO)      */
-/* ----------------------------- */
+/* REGISTRAR */
 function registrarDatos(){
-
-  /* ⚠ Evita registro sin correo validado */
   if(!emailValidado){
     return alert("⚠ Primero validá tu correo institucional.");
   }
@@ -164,7 +153,7 @@ db.ref("alumnos").orderByChild("hora").on("value",s=>{
   });
 });
 
-/* FUNCIONES EXTRAS */
+/* BORRAR TODO */
 function eliminarRegistros(){ 
   if(confirm("¿Seguro que querés borrar todo?")) 
     db.ref("alumnos").remove(); 
@@ -185,27 +174,6 @@ function exportarRegistros(){
   });
 }
 
-/* IMPORTAR */
-function importarRegistros(){
-  const lineas=document.getElementById("importArea").value.split("\n");
-
-  lineas.forEach(l=>{
-    if(!l.trim()) return;
-
-    try{
-      let o=JSON.parse(l);
-      if(!o.email) return alert("Una línea no tenía email, se ignoró.");
-
-      const id=limpiarID(o.email);
-      db.ref("alumnos/"+id).set(o);
-
-    }catch(err){
-      alert("❌ Línea con formato incorrecto. Verificá el JSON.");
-    }
-  });
-
-  alert("📥 Importado con éxito");
-}
 </script>
 
 </body>
