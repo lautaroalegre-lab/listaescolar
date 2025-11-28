@@ -14,7 +14,7 @@
 
 <body>
 
-<h1>📘 Registro Escolar — RealTime Firebase v5 FULL</h1>
+<h1>📘 Registro Escolar — Firebase</h1>
 
 <!-- VALIDACIÓN DE CORREO -->
 <h2>✉ Correo institucional</h2>
@@ -30,19 +30,21 @@
 <button type="button" onclick="registrarDatos()">Registrar</button>
 </div>
 
-<!-- LISTA EN TIEMPO REAL -->
-<h3>📄 Registro en tiempo real</h3>
-<ul id="registroList"></ul>
-<button onclick="eliminarRegistros()">🗑 Borrar todo</button>
-<button onclick="exportarRegistros()">📤 Exportar registros</button>
-<textarea id="exportArea" rows="5" readonly style="display:none;"></textarea>
+<!-- 🔒 SECCIÓN OCULTA: Registro en tiempo real, borrar, exportar -->
+<div style="display:none;">
+  <h3>📄 Registro en tiempo real</h3>
+  <ul id="registroList"></ul>
+  <button onclick="eliminarRegistros()">🗑 Borrar todo</button>
+  <button onclick="exportarRegistros()">📤 Exportar registros</button>
+  <textarea id="exportArea" rows="5" readonly></textarea>
+</div>
 
 <!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"></script>
 
 <script>
-/* 🔥 PEGAR CONFIG FIREBASE AQUI */
+/* 🔥 CONFIG FIREBASE */
 const firebaseConfig={
   apiKey:"",
   authDomain:"",
@@ -55,20 +57,14 @@ const firebaseConfig={
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
-/* 🔒 Sanitizar ID Firebase */
+/* Sanitizar ID */
 function limpiarID(email){
-  return email
-    .toLowerCase()
-    .replace(/[.#$[\]]/g, "_")
-    .replace(/\s+/g, "_");
+  return email.toLowerCase().replace(/[.#$[\]]/g,"_").replace(/\s+/g,"_");
 }
 
-/* ----------------------------- */
-/*  🔧 EMAIL VALIDADO (ARREGLO) */
-/* ----------------------------- */
 let emailValidado = null;
 
-/* VALIDAR MAIL */
+/* VALIDAR */
 function validarEmail(){
   const email=document.getElementById("emailInput").value.trim();
   const msg=document.getElementById("emailMensaje");
@@ -83,40 +79,27 @@ function validarEmail(){
 
   msg.textContent="✔ Correo válido. Continúa con tus datos.";
   msg.className="success";
-
   emailValidado = email.toLowerCase();
   document.getElementById("datosForm").style.display="block";
 }
 
-/* ASIGNAR MATERIA POR HORA */
+/* MATERIA SEGÚN HORA */
 function obtenerMateria(hora){
   const [h,m]=hora.split(":").map(Number);
   const t=h*60+m, d=new Date().getDay();
   const M=(a,b,c)=>t>=a&&t<b?c:null;
 
-  if(d===1) return M(465,505,"Geografía")||M(505,595,"Educación Artística")||M(595,725,"Expresión Oral y Escrita")||
-                     M(770,890,"Diseño y Plegado")||M(905,1020,"Diseño y Plegado")||"Recreo";
-
-  if(d===2) return M(465,545,"Historia")||M(555,675,"Inglés")||M(705,735,"Micro")||M(735,855,"Educación Física")||
-                     M(895,980,"Lengua")||"Recreo";
-
-  if(d===3) return M(465,635,"Dibujo Técnico")||M(645,685,"Tutoría")||M(685,725,"Educación Artística")||
-                     M(730,810,"Matemática")||M(855,935,"Lengua")||M(940,980,"Historia")||"Recreo";
-
-  if(d===4) return M(465,545,"Geografía")||M(555,635,"Matemática")||M(645,725,"ABP")||
-                     M(730,810,"TIC")||M(855,935,"Ciudadanía")||"Recreo";
-
-  if(d===5) return M(465,545,"Matemática")||M(555,635,"Biología")||M(645,725,"Programación")||
-                     M(730,810,"Inglés")||"Recreo";
-
+  if(d===1) return M(465,505,"Geografía")||"Recreo";
+  if(d===2) return M(465,545,"Historia")||"Recreo";
+  if(d===3) return M(465,635,"Dibujo Técnico")||"Recreo";
+  if(d===4) return M(465,545,"Geografía")||"Recreo";
+  if(d===5) return M(465,545,"Matemática")||"Recreo";
   return "Fuera de horario";
 }
 
 /* REGISTRAR */
 function registrarDatos(){
-  if(!emailValidado){
-    return alert("⚠ Primero validá tu correo institucional.");
-  }
+  if(!emailValidado) return alert("⚠ Primero validá tu correo institucional.");
 
   const nombre=document.getElementById("nombreInput").value.trim();
   const apellido=document.getElementById("apellidoInput").value.trim();
@@ -143,7 +126,7 @@ function registrarDatos(){
   });
 }
 
-/* LISTA EN TIEMPO REAL */
+/* REAL-TIME (aunque oculto) */
 db.ref("alumnos").orderByChild("hora").on("value",s=>{
   let l=document.getElementById("registroList");
   l.innerHTML="";
@@ -163,17 +146,11 @@ function eliminarRegistros(){
 function exportarRegistros(){
   const a=document.getElementById("exportArea");
   a.value="";
-
   db.ref("alumnos").once("value",s=>{
     s.forEach(v=> a.value += JSON.stringify(v.val())+"\n" );
     a.style.display="block";
-
-    navigator.clipboard.writeText(a.value)
-      .then(()=> alert("📤 Copiado al portapapeles"))
-      .catch(()=> alert("⚠ No se pudo copiar automáticamente"));
   });
 }
-
 </script>
 
 </body>
